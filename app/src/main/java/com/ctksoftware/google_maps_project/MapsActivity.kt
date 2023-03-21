@@ -1,7 +1,17 @@
 package com.ctksoftware.google_maps_project
 
+import android.Manifest
+import android.content.Context
+import android.content.pm.PackageManager
+import android.location.Location
+import android.location.LocationListener
+import android.location.LocationManager
 import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
+import androidx.annotation.RequiresApi
+import androidx.core.app.ActivityCompat
+import androidx.core.content.ContextCompat
+import androidx.core.content.PackageManagerCompat
 
 import com.google.android.gms.maps.CameraUpdateFactory
 import com.google.android.gms.maps.GoogleMap
@@ -15,6 +25,8 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
 
     private lateinit var mMap: GoogleMap
     private lateinit var binding: ActivityMapsBinding
+    private lateinit var locationManager: LocationManager
+    private lateinit var locationListener: LocationListener
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -28,12 +40,24 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
         mapFragment.getMapAsync(this)
     }
 
+    @RequiresApi(33)
     override fun onMapReady(googleMap: GoogleMap) {
         mMap = googleMap
 
-        // Add a marker in Sydney and move the camera
-        val sydney = LatLng(-34.0, 151.0)
-        mMap.addMarker(MarkerOptions().position(sydney).title("Marker in Sydney"))
-        mMap.moveCamera(CameraUpdateFactory.newLatLng(sydney))
+       // val homeSp = LatLng(53.375436, -6.166424)
+        // mMap.addMarker(MarkerOptions().position(homeSp).title("Home sweet home"))
+       // mMap.moveCamera(CameraUpdateFactory.newLatLngZoom(homeSp, 15f))
+        locationManager = getSystemService(Context.LOCALE_SERVICE) as LocationManager
+        locationListener = object : LocationListener{
+            override fun onLocationChanged(location: Location) {
+
+            }
+        }
+            if (ContextCompat.checkSelfPermission(this,Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED){
+                // no permission
+
+            }else{
+                // permission granted
+            }
     }
 }
