@@ -1,32 +1,38 @@
 package com.ctksoftware.google_maps_project
 
 import android.Manifest
+import android.annotation.SuppressLint
+import android.app.Activity
 import android.content.Context
 import android.content.pm.PackageManager
 import android.location.Location
 import android.location.LocationListener
 import android.location.LocationManager
-import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
+import android.widget.Toast
 import androidx.annotation.RequiresApi
+import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
-import androidx.core.content.PackageManagerCompat
-
+import com.ctksoftware.google_maps_project.databinding.ActivityMapsBinding
+import com.google.android.gms.location.FusedLocationProviderClient
+import com.google.android.gms.location.LocationServices
 import com.google.android.gms.maps.CameraUpdateFactory
 import com.google.android.gms.maps.GoogleMap
 import com.google.android.gms.maps.OnMapReadyCallback
 import com.google.android.gms.maps.SupportMapFragment
 import com.google.android.gms.maps.model.LatLng
 import com.google.android.gms.maps.model.MarkerOptions
-import com.ctksoftware.google_maps_project.databinding.ActivityMapsBinding
+
 
 class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
 
     private lateinit var mMap: GoogleMap
     private lateinit var binding: ActivityMapsBinding
-    private lateinit var locationManager: LocationManager
-    private lateinit var locationListener: LocationListener
+
+    private lateinit var currentLocation: Location
+    private lateinit var fusedLocationClient: FusedLocationProviderClient
+    private val permissionCode=101
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -34,30 +40,66 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
         binding = ActivityMapsBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
-        // Obtain the SupportMapFragment and get notified when the map is ready to be used.
-        val mapFragment = supportFragmentManager
-            .findFragmentById(R.id.map) as SupportMapFragment
-        mapFragment.getMapAsync(this)
+        fusedLocationClient = LocationServices.getFusedLocationProviderClient(this)
+
+
+
+        getCurrentUserLocation()
     }
 
-    @RequiresApi(33)
+    @SuppressLint("MissingPermission")
+    private fun getCurrentUserLocation() {
+        if (ActivityCompat.checkSelfPermission(this,Manifest.permission.ACCESS_FINE_LOCATION)!=PackageManager.PERMISSION_GRANTED &&ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION)!=PackageManager.PERMISSION_GRANTED)
+        {
+            ActivityCompat.requestPermissions(this, arrayOf(android.Manifest.permission.ACCESS_FINE_LOCATION,),permissionCode)
+            return
+        }
+
+        val getLocation = fusedLocationClient.lastLocation.addOnSuccessListener {
+            location->
+            if (location!=null){
+                currentLocation=location
+                Toast.makeText(this, currentLocation.latitude.toString()+" "+currentLocation.altitude.toString(), Toast.LENGTH_LONG).show()
+
+                // Obtain the SupportMapFragment and get notified when the map is ready to be used.
+                val mapFragment = supportFragmentManager
+                    .findFragmentById(R.id.map) as SupportMapFragment
+                mapFragment.getMapAsync(this)
+            }
+        }
+    }
+
+
     override fun onMapReady(googleMap: GoogleMap) {
         mMap = googleMap
 
-       // val homeSp = LatLng(53.375436, -6.166424)
-        // mMap.addMarker(MarkerOptions().position(homeSp).title("Home sweet home"))
+   val home = LatLng(currentLocation.latitude, currentLocation.longitude)
+
+        val markerOptions = MarkerOptions().position(home).title("Home Sweet Home")
+        googleMap?.animateCamera(CameraUpdateFactory.newLatLng(home))
+        googleMap?.animateCamera(CameraUpdateFactory.newLatLngZoom(home,15f))
+        googleMap?.addMarker(markerOptions)
+
+        //mMap.addMarker(MarkerOptions().position(homeSp).title("Home sweet home"))
        // mMap.moveCamera(CameraUpdateFactory.newLatLngZoom(homeSp, 15f))
-        locationManager = getSystemService(Context.LOCALE_SERVICE) as LocationManager
-        locationListener = object : LocationListener{
-            override fun onLocationChanged(location: Location) {
 
-            }
-        }
-            if (ContextCompat.checkSelfPermission(this,Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED){
-                // no permission
 
-            }else{
-                // permission granted
-            }
     }
+
+
+
+    override fun onRequestPermissionsResult(
+        requestCode: Int,
+        permissions: Array<out String>,
+        grantResults: IntArray
+    ) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults)
+        when(requestCode){
+            permissionCode-> if (grantResults.isNotEmpty()&& grantResults [0]==PackageManager.PERMISSION_GRANTED)
+                getCurrentUserLocation()
+        }
+    }
+
 }
+
+
